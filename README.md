@@ -1,2 +1,4 @@
 # azure-uri
-Super simple uri shortener for Azure
+
+Super simple URI shortener for Azure
+
