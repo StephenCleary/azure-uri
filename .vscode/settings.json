@@ -1,0 +1,6 @@
+{
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~4",
+    "dotnet.defaultSolution": "src/api/api.sln",
+    "azureFunctions.projectSubpath": "src/api"
+}
