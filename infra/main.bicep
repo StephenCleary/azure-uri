@@ -17,6 +17,8 @@ param apiServiceName string = ''
 param applicationInsightsDashboardName string = ''
 param applicationInsightsName string = ''
 param appServicePlanName string = ''
+param cosmosAccountName string = ''
+param cosmosDatabaseName string = ''
 param keyVaultName string = ''
 param logAnalyticsName string = ''
 param resourceGroupName string = ''
@@ -85,6 +87,16 @@ module storage './core/storage/storage-account.bicep' = {
     name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
     location: location
     tags: tags
+  }
+}
+
+module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
+  name: 'cosmos'
+  scope: rg
+  params: {
+    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    databaseName: !empty(cosmosDatabaseName) ? cosmosDatabaseName : '${abbrs.documentDBDatabases}${resourceToken}'
+    location: location
   }
 }
 

@@ -2,20 +2,28 @@ param name string
 param location string = resourceGroup().location
 param tags object = {}
 
-param keyVaultName string
-
-module cosmos '../../cosmos/cosmos-account.bicep' = {
-  name: 'cosmos-account'
-  params: {
-    name: name
-    location: location
-    tags: tags
-    keyVaultName: keyVaultName
-    kind: 'GlobalDocumentDB'
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
+  name: name
+  kind: 'GlobalDocumentDB'
+  location: location
+  tags: tags
+  properties: {
+    consistencyPolicy: { defaultConsistencyLevel: 'Session' }
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    databaseAccountOfferType: 'Standard'
+    enableAutomaticFailover: false
+    enableMultipleWriteLocations: false
+    enableFreeTier: true
+    capabilities: [ { name: 'EnableServerless' } ]
   }
 }
 
-output connectionStringKey string = cosmos.outputs.connectionStringKey
-output endpoint string = cosmos.outputs.endpoint
-output id string = cosmos.outputs.id
-output name string = cosmos.outputs.name
+output endpoint string = cosmos.properties.documentEndpoint
+output id string = cosmos.id
+output name string = cosmos.name

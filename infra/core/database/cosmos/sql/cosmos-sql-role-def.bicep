@@ -17,7 +17,7 @@ resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinition
         notDataActions: []
       }
     ]
-    roleName: 'Reader Writer'
+    roleName: 'Function App'
     type: 'CustomRole'
   }
 }
