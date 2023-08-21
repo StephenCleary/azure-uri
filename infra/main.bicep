@@ -47,20 +47,9 @@ module api './app/api.bicep' = {
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
     appServicePlanId: appServicePlan.outputs.id
-    keyVaultName: keyVault.outputs.name
     storageAccountName: storage.outputs.name
     appSettings: {
     }
-  }
-}
-
-// Give the API access to KeyVault
-module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
-  name: 'api-keyvault-access'
-  scope: rg
-  params: {
-    keyVaultName: keyVault.outputs.name
-    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
   }
 }
 
@@ -105,18 +94,6 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
   }
 }
 
-// Store secrets in a keyvault
-module keyVault './core/security/keyvault.bicep' = {
-  name: 'keyvault'
-  scope: rg
-  params: {
-    name: !empty(keyVaultName) ? keyVaultName : '${abbrs.keyVaultVaults}${resourceToken}'
-    location: location
-    tags: tags
-    principalId: principalId
-  }
-}
-
 // Monitor application with Azure Monitor
 module monitoring './core/monitor/monitoring.bicep' = {
   name: 'monitoring'
@@ -131,7 +108,6 @@ module monitoring './core/monitor/monitoring.bicep' = {
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
-output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
-output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
+output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId

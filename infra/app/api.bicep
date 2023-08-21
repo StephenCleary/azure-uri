@@ -7,7 +7,6 @@ param applicationInsightsName string = ''
 param appServicePlanId string
 @secure()
 param appSettings object = {}
-param keyVaultName string
 param serviceName string = 'api'
 param storageAccountName string
 
@@ -22,7 +21,6 @@ module api '../core/host/functions.bicep' = {
     appSettings: appSettings
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    keyVaultName: keyVaultName
     runtimeName: 'dotnet-isolated'
     runtimeVersion: '6.0'
     storageAccountName: storageAccountName

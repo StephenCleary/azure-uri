@@ -5,8 +5,6 @@ param tags object = {}
 // Reference Properties
 param applicationInsightsName string = ''
 param appServicePlanId string
-param keyVaultName string = ''
-param managedIdentity bool = !empty(keyVaultName)
 param storageAccountName string
 
 // Runtime Properties
@@ -62,10 +60,9 @@ module functions 'appservice.bicep' = {
     enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit
     healthCheckPath: healthCheckPath
-    keyVaultName: keyVaultName
     kind: kind
     linuxFxVersion: linuxFxVersion
-    managedIdentity: managedIdentity
+    managedIdentity: true
     minimumElasticInstanceCount: minimumElasticInstanceCount
     numberOfWorkers: numberOfWorkers
     runtimeName: runtimeName
@@ -80,6 +77,6 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
   name: storageAccountName
 }
 
-output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''
+output identityPrincipalId string = functions.outputs.identityPrincipalId
 output name string = functions.outputs.name
 output uri string = functions.outputs.uri
