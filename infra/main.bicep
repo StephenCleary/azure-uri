@@ -97,6 +97,11 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
     accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     databaseName: !empty(cosmosDatabaseName) ? cosmosDatabaseName : '${abbrs.documentDBDatabases}${resourceToken}'
     location: location
+    containers: [
+      { id: 'slugs', name: 'slugs', partitionKey: '/slug' }
+      { id: 'logs', name: 'logs', partitionKey: '/slug' }
+    ]
+    principalIds: [ api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID ]
   }
 }
 
