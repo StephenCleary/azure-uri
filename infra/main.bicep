@@ -24,9 +24,6 @@ param logAnalyticsName string = ''
 param resourceGroupName string = ''
 param storageAccountName string = ''
 
-@description('Id of the user or app to assign application roles')
-param principalId string = ''
-
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
@@ -49,6 +46,7 @@ module api './app/api.bicep' = {
     appServicePlanId: appServicePlan.outputs.id
     storageAccountName: storage.outputs.name
     appSettings: {
+      AZURE_COSMOSDB_ENDPOINT: cosmos.outputs.endpoint
     }
   }
 }
@@ -90,8 +88,20 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
       { id: 'slugs', name: 'slugs', partitionKey: '/slug' }
       { id: 'logs', name: 'logs', partitionKey: '/slug' }
     ]
-    principalIds: [ api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID ]
   }
+}
+
+module userRole './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-user-role'
+  scope: rg
+  params: {
+    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+  }
+  dependsOn: [
+    cosmos
+  ]
 }
 
 // Monitor application with Azure Monitor

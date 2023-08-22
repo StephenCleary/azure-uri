@@ -4,7 +4,6 @@ param location string = resourceGroup().location
 param tags object = {}
 
 param containers array = []
-param principalIds array = []
 
 // This creates a free tier account; if you already have a free tier account, reference an existing resource here instead.
 module cosmos 'cosmos-sql-account.bicep' = {
@@ -48,21 +47,6 @@ module roleDefinition 'cosmos-sql-role-def.bicep' = {
     database
   ]
 }
-
-// We need batchSize(1) here because sql role assignments have to be done sequentially
-@batchSize(1)
-module userRole 'cosmos-sql-role-assign.bicep' = [for principalId in principalIds: if (!empty(principalId)) {
-  name: 'cosmos-sql-user-role-${uniqueString(principalId)}'
-  params: {
-    accountName: accountName
-    roleDefinitionId: roleDefinition.outputs.id
-    principalId: principalId
-  }
-  dependsOn: [
-    cosmos
-    database
-  ]
-}]
 
 output accountId string = cosmos.outputs.id
 output accountName string = cosmos.outputs.name
