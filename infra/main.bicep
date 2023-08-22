@@ -47,6 +47,7 @@ module api './app/api.bicep' = {
     storageAccountName: storage.outputs.name
     appSettings: {
       AZURE_COSMOSDB_ENDPOINT: cosmos.outputs.endpoint
+      AZURE_COSMOSDB_DATABASE_ID: cosmos.outputs.databaseName
     }
   }
 }
