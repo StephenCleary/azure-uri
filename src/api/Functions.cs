@@ -23,15 +23,40 @@ public class Functions
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "{slug}")]
         HttpRequestData req, string slug)
     {
+        var log = new LogEntity(
+            id: Guid.NewGuid().ToString("N"),
+            timestamp: DateTimeOffset.UtcNow,
+            slug: slug,
+            requestUrl: req.Url.ToString(),
+            requestHeaders: req.Headers.ToString(),
+            clientIpAddress: ClientIpAddress(),
+            resultStatusCode: 0,
+            resultUrl: "");
+
         var (slugLookup, statusCode) = await TryLookupSlugAsync();
         if (statusCode == HttpStatusCode.OK)
         {
+            await _logsContainer.CreateItemAsync(
+                log with {
+                    resultStatusCode = (int)HttpStatusCode.Found,
+                    resultUrl = slugLookup!.url,
+                },
+                partitionKey: new PartitionKey(slug),
+                requestOptions: new() { EnableContentResponseOnWrite = false });
+
             var result = req.CreateResponse(HttpStatusCode.Found);
-            result.Headers.Add("Location", slugLookup!.uri);
+            result.Headers.Add("Location", slugLookup!.url);
             return result;
         }
         if (statusCode == HttpStatusCode.NotFound)
         {
+            await _logsContainer.CreateItemAsync(
+                log with {
+                    resultStatusCode = (int)HttpStatusCode.NotFound,
+                },
+                partitionKey: new PartitionKey(slug),
+                requestOptions: new() { EnableContentResponseOnWrite = false });
+            
             _logger.LogInformation("Slug lookup not found for slug {slug}", slug);
             return req.CreateResponse(HttpStatusCode.NotFound);
         }
@@ -39,11 +64,19 @@ public class Functions
         _logger.LogError("Slug lookup failed for slug {slug} with status code {statusCode}", slug, statusCode);
         return req.CreateResponse(HttpStatusCode.InternalServerError);
 
-        async Task<(Slug? Slug, HttpStatusCode Status)> TryLookupSlugAsync()
+        string ClientIpAddress()
+        {
+            var headerValue = req.Headers.TryGetValues("X-Forwarded-For", out var values) ? values.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split(':').FirstOrDefault() : "" ?? "";
+            if (IPAddress.TryParse(headerValue, out _))
+                return headerValue;
+            return "";
+        }
+
+        async Task<(SlugEntity? Slug, HttpStatusCode Status)> TryLookupSlugAsync()
         {
             try
             {
-                var slugLookupResponse = await _slugsContainer.ReadItemAsync<Slug>("", new PartitionKey(slug));
+                var slugLookupResponse = await _slugsContainer.ReadItemAsync<SlugEntity>(slug, new PartitionKey(slug));
                 return (slugLookupResponse.Resource, slugLookupResponse.StatusCode);
             }
             catch (CosmosException ex)

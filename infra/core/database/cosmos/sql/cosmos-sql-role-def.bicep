@@ -17,7 +17,7 @@ resource roleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinition
         notDataActions: []
       }
     ]
-    roleName: 'Function App'
+    roleName: 'CosmosDb Reader/Writer'
     type: 'CustomRole'
   }
 }

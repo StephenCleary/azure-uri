@@ -11,7 +11,7 @@ class Program
         using var cosmosClient = new CosmosClient(
             accountEndpoint: Environment.GetEnvironmentVariable("AZURE_COSMOSDB_ENDPOINT"),
             tokenCredential: new DefaultAzureCredential());
-        var cosmosDatabase = cosmosClient.GetDatabase("AZURE_COSMOSDB_DATABASE_ID");
+        var cosmosDatabase = cosmosClient.GetDatabase(Environment.GetEnvironmentVariable("AZURE_COSMOSDB_DATABASE_NAME"));
 
         var credential = new DefaultAzureCredential();
         var host = new HostBuilder()

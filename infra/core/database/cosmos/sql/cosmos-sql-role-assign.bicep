@@ -1,7 +1,6 @@
 param accountName string
-
 param roleDefinitionId string
-param principalId string = ''
+param principalId string
 
 resource role 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2022-05-15' = {
   parent: cosmos

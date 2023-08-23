@@ -9,28 +9,24 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
-// Optional parameters to override the default azd resource naming conventions. Update the main.parameters.json file to provide values. e.g.,:
-// "resourceGroupName": {
-//      "value": "myGroupName"
-// }
-param apiServiceName string = ''
-param applicationInsightsDashboardName string = ''
-param applicationInsightsName string = ''
-param appServicePlanName string = ''
-param cosmosAccountName string = ''
-param cosmosDatabaseName string = ''
-param keyVaultName string = ''
-param logAnalyticsName string = ''
-param resourceGroupName string = ''
-param storageAccountName string = ''
+param principalId string
 
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
+var resourceGroupName = '${abbrs.resourcesResourceGroups}${environmentName}'
+var apiServiceName = '${abbrs.webSitesFunctions}api-${resourceToken}'
+var appServicePlanName = '${abbrs.webServerFarms}${resourceToken}'
+var storageAccountName = '${abbrs.storageStorageAccounts}${resourceToken}'
+var cosmosAccountName = '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+var cosmosDatabaseName = '${abbrs.documentDBDatabases}${resourceToken}'
+var logAnalyticsName = '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+var applicationInsightsName = '${abbrs.insightsComponents}${resourceToken}'
+var applicationInsightsDashboardName = '${abbrs.portalDashboards}${resourceToken}'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
+  name: resourceGroupName
   location: location
   tags: tags
 }
@@ -39,7 +35,7 @@ module api './app/api.bicep' = {
   name: 'api'
   scope: rg
   params: {
-    name: !empty(apiServiceName) ? apiServiceName : '${abbrs.webSitesFunctions}api-${resourceToken}'
+    name: apiServiceName
     location: location
     tags: tags
     applicationInsightsName: monitoring.outputs.applicationInsightsName
@@ -47,7 +43,7 @@ module api './app/api.bicep' = {
     storageAccountName: storage.outputs.name
     appSettings: {
       AZURE_COSMOSDB_ENDPOINT: cosmos.outputs.endpoint
-      AZURE_COSMOSDB_DATABASE_ID: cosmos.outputs.databaseName
+      AZURE_COSMOSDB_DATABASE_NAME: cosmos.outputs.databaseName
     }
   }
 }
@@ -57,7 +53,7 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
   name: 'appserviceplan'
   scope: rg
   params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+    name: appServicePlanName
     location: location
     tags: tags
     sku: {
@@ -72,7 +68,7 @@ module storage './core/storage/storage-account.bicep' = {
   name: 'storage'
   scope: rg
   params: {
-    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+    name: storageAccountName
     location: location
     tags: tags
   }
@@ -82,8 +78,8 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
   name: 'cosmos'
   scope: rg
   params: {
-    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
-    databaseName: !empty(cosmosDatabaseName) ? cosmosDatabaseName : '${abbrs.documentDBDatabases}${resourceToken}'
+    accountName: cosmosAccountName
+    databaseName: cosmosDatabaseName
     location: location
     containers: [
       { id: 'slugs', name: 'slugs', partitionKey: '/slug' }
@@ -92,13 +88,26 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
   }
 }
 
-module userRole './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+module apiRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-api-role'
+  scope: rg
+  params: {
+    accountName: cosmosAccountName
+    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+  }
+  dependsOn: [
+    cosmos
+  ]
+}
+
+module userRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
   name: 'cosmos-sql-user-role'
   scope: rg
   params: {
-    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    accountName: cosmosAccountName
     roleDefinitionId: cosmos.outputs.roleDefinitionId
-    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    principalId: principalId
   }
   dependsOn: [
     cosmos
@@ -112,13 +121,14 @@ module monitoring './core/monitor/monitoring.bicep' = {
   params: {
     location: location
     tags: tags
-    logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
-    applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
-    applicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}${resourceToken}'
+    logAnalyticsName: logAnalyticsName
+    applicationInsightsName: applicationInsightsName
+    applicationInsightsDashboardName: applicationInsightsDashboardName
   }
 }
 
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
+output AZURE_COSMOSDB_DATABASE_NAME string = cosmosDatabaseName
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
