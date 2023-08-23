@@ -88,26 +88,53 @@ module cosmos './core/database/cosmos/sql/cosmos-sql-db.bicep' = {
   }
 }
 
-module apiRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
-  name: 'cosmos-sql-api-role'
+// Point-read-only role.
+module proRoleDefinition './core/database/cosmos/sql/cosmos-sql-role-def.bicep' = {
+  name: 'cosmos-sql-role-definition-pro'
   scope: rg
   params: {
     accountName: cosmosAccountName
-    roleDefinitionId: cosmos.outputs.roleDefinitionId
-    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
   }
   dependsOn: [
     cosmos
   ]
 }
 
+// API has point-read-only access to `slugs`
+module apiSlugsRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-api-role-slugs'
+  scope: rg
+  params: {
+    accountName: cosmosAccountName
+    roleDefinitionId: proRoleDefinition.outputs.id
+    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    databaseName: cosmosDatabaseName
+    containerName: 'slugs'
+  }
+}
+
+// API has read/write access to `logs`
+module apiLogsRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-sql-api-role-logs'
+  scope: rg
+  params: {
+    accountName: cosmosAccountName
+    roleDefinitionId: '${cosmos.outputs.accountId}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    databaseName: cosmosDatabaseName
+    containerName: 'logs'
+  }
+}
+
+// CLI has read/write access to entire database
 module userRoleAssignment './core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
   name: 'cosmos-sql-user-role'
   scope: rg
   params: {
     accountName: cosmosAccountName
-    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    roleDefinitionId: '${cosmos.outputs.accountId}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
     principalId: principalId
+    databaseName: cosmosDatabaseName
   }
   dependsOn: [
     cosmos

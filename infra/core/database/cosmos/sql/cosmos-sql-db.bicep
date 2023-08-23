@@ -37,19 +37,7 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-05-15
   ]
 }
 
-module roleDefinition 'cosmos-sql-role-def.bicep' = {
-  name: 'cosmos-sql-role-definition'
-  params: {
-    accountName: accountName
-  }
-  dependsOn: [
-    cosmos
-    database
-  ]
-}
-
 output accountId string = cosmos.outputs.id
 output accountName string = cosmos.outputs.name
 output databaseName string = databaseName
 output endpoint string = cosmos.outputs.endpoint
-output roleDefinitionId string = roleDefinition.outputs.id
