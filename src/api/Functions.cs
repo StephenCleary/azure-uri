@@ -46,6 +46,12 @@ public class Functions
 
             var result = req.CreateResponse(HttpStatusCode.Found);
             result.Headers.Add("Location", slugLookup!.url);
+
+            // No caching. For serious.
+            result.Headers.Add("Cache-Control", "no-store, no-cache, private, max-age=0, s-maxage=0, must-revalidate, proxy-revalidate");
+            result.Headers.Add("Pragma", "no-cache");
+            result.Headers.Add("Expires", "Mon, 01 Jan 1990 00:00:00 GMT");
+            
             return result;
         }
         if (statusCode == HttpStatusCode.NotFound)
