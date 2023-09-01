@@ -3,11 +3,14 @@ using Azure.Identity;
 using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
+using CsvHelper;
+using System.Globalization;
 
 var envValues = LoadAzdEnvFile();
 DotNetEnv.Env.LoadContents(envValues);
 
 var rootCommand = new RootCommand("azure-uri cli");
+
 var slugArgument = new Argument<string>("slug", "The short url.");
 var urlArgument = new Argument<Uri>("url", "The target url.");
 var setCommand = new Command("set", "Forward a short url to a target url.")
@@ -15,7 +18,6 @@ var setCommand = new Command("set", "Forward a short url to a target url.")
     slugArgument,
     urlArgument,
 };
-rootCommand.AddCommand(setCommand);
 setCommand.SetHandler(async (slug, url) =>
 {
     using var cosmosClient = new CosmosClient(
@@ -29,6 +31,29 @@ setCommand.SetHandler(async (slug, url) =>
     ));
 }, slugArgument, urlArgument);
 
+var exportFileParameter = new Argument<FileInfo>("csvfile", "The file to export to.");
+var exportCommand = new Command("export", "Export all slugs to a file.")
+{
+    exportFileParameter,
+};
+exportCommand.SetHandler(async (FileInfo file) =>
+{
+    using var cosmosClient = new CosmosClient(
+        accountEndpoint: Environment.GetEnvironmentVariable("AZURE_COSMOSDB_ENDPOINT"),
+        tokenCredential: new DefaultAzureCredential());
+    var slugsContainer = cosmosClient.GetContainer(Environment.GetEnvironmentVariable("AZURE_COSMOSDB_DATABASE_NAME"), "slugs");
+    using var iterator = slugsContainer.GetItemQueryIterator<SlugEntity>();
+    using var writer = new StreamWriter(file.FullName, append: false, Encoding.UTF8);
+    using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+    while (iterator.HasMoreResults)
+    {
+        var items = await iterator.ReadNextAsync();
+        csv.WriteRecords(items.Select(item => new { slug = item.slug, url = item.url }));
+    }
+}, exportFileParameter);
+
+rootCommand.AddCommand(setCommand);
+rootCommand.AddCommand(exportCommand);
 return await rootCommand.InvokeAsync(args);
 
 static string LoadAzdEnvFile()
