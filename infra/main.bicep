@@ -157,5 +157,6 @@ module monitoring './core/monitor/monitoring.bicep' = {
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
 output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
 output AZURE_COSMOSDB_DATABASE_NAME string = cosmosDatabaseName
+output AZURE_APP_URI string = api.outputs.SERVICE_API_URI
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId

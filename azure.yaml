@@ -6,3 +6,7 @@ services:
     project: ./src/api
     language: dotnet
     host: function
+    hooks:
+      postdeploy:
+        shell: sh
+        run: curl ${AZURE_APP_URI}/__warmup
