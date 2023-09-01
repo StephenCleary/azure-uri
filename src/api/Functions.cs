@@ -91,4 +91,10 @@ public class Functions
             }
         }
     }
+
+    [Function(nameof(Keepalive))]
+    public void Keepalive([TimerTrigger("0 */15 * * * *")]TimerInfo timerInfo)
+    {
+        // Do nothing, this is used to prevent cold-start time
+    }
 }
