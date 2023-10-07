@@ -48,7 +48,7 @@ exportCommand.SetHandler(async (FileInfo file) =>
     while (iterator.HasMoreResults)
     {
         var items = await iterator.ReadNextAsync();
-        csv.WriteRecords(items.Select(item => new { slug = item.slug, url = item.url }));
+        csv.WriteRecords(items.Select(item => new { item.slug, item.url }));
     }
 }, exportFileParameter);
 
